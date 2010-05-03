@@ -19,11 +19,24 @@ namespace :db do
   
     desc "Lists all branch-specific db dumps"
     task :list => :environment do
-      dir = Pathname("#{RAILS_ROOT}/tmp/branch-dumps")
+      dir = dump_path
       dir.children.each {|c| puts c.basename } if dir.exist?
     end
+
+    desc "Delete a branch dump using 'filename' parameter"
+    task :delete => :environment do
+      dump = dump_path.join(ENV['filename'])
+      puts "Deleting #{dump} ..."
+      system "rm #{dump}"
+      puts "Done."
+    end
     
-    # TODO: prune dumps
+    desc "Delete all branch dumps"
+    task :delete_all => :environment do
+      puts "Deleting all dumps ..."
+      system "rm -r #{dump_path}"
+      puts "Done."
+    end
   end
   
 end
@@ -48,8 +61,12 @@ def current_git_branch
   branch || fatal_error!("Current git branch not found!")
 end
 
+def dump_path
+  Pathname("#{RAILS_ROOT}/tmp/branch-dumps")
+end
+
 def branch_dump_pathname(branch)
-  Pathname("#{RAILS_ROOT}/tmp/branch-dumps/#{branch}-#{RAILS_ENV}.sql")
+  dump_path.join("#{branch}-#{RAILS_ENV}.sql")
 end
 
 def dump_database_for_branch(branch)

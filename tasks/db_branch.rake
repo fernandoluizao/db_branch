@@ -1,6 +1,6 @@
 namespace :db do
   namespace :branch do
-  
+
     desc "Saves a db dump for the current git branch"
     task :save => :environment do
       branch = current_git_branch
@@ -22,8 +22,24 @@ namespace :db do
       dir = Pathname("#{RAILS_ROOT}/tmp/branch-dumps")
       dir.children.each {|c| puts c.basename } if dir.exist?
     end
-  
+    
+    # TODO: prune dumps
   end
+  
+end
+
+def adapter_for(config, pathname)
+  klass = case config['adapter']
+    when 'mysql'
+      DbBranch::Adapters::Mysql
+    when 'postgresql'
+      DbBranch::Adapters::Postgresql
+    when 'sqlite3'
+      DbBranch::Adapters::Sqlite
+    else
+      raise "Don't know how to dump/restore '#{config['adapter']}'"
+  end
+  klass.new(config, pathname)
 end
 
 def current_git_branch
@@ -40,22 +56,18 @@ def dump_database_for_branch(branch)
   config = current_db_config
   pathname = branch_dump_pathname(branch)
   pathname.dirname.mkpath
-  dump_cmd = "/usr/bin/env mysqldump --skip-add-locks -u#{config['username']}"
-  dump_cmd << " -p'#{config['password']}'" unless config['password'].blank?
-  dump_cmd << " #{config['database']} > #{pathname}"
-  system(dump_cmd)
+  adapter = adapter_for(current_db_config, pathname)
+  adapter.dump
 end
 
 def restore_database_for_branch(branch)
   config = current_db_config
   pathname = branch_dump_pathname(branch)
   fatal_error!("No db dump exists for current branch!") unless pathname.exist?
-  restore_cmd = "/usr/bin/env mysql -u#{config['username']}"
-  restore_cmd << " -p'#{config['password']}'" unless config['password'].blank?
-  restore_cmd << " #{config['database']} < #{pathname}"
   Rake::Task['db:drop'].invoke
   Rake::Task['db:create'].invoke
-  system(restore_cmd)
+  adapter = adapter_for(current_db_config, pathname)
+  adapter.restore
 end
 
 def current_db_config

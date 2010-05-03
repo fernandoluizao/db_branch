@@ -11,8 +11,13 @@ Often, a project's schema and/or development data will vary as you work on diffe
     ~/projects/profit [feature-branch]> ... work on other branch ...
     ~/projects/profit [master]> rake db:branch:restore
 
+== Supported Databases
+
+    * MySQL
+    * PostgreSQL
+    * SQLite
+
 == Caveats
 
 * Helps to set git to ignore RAILS_ROOT/tmp/branch-dumps
-* Tested on OS X; probably works in Unix environments but not on Windows
-* Only supports MySQL for now
+* Works in Unix environments but not on Windows
